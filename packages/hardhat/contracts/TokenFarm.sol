@@ -14,7 +14,7 @@ contract TokenFarm {
     //
     string public name = "Proportional Token Farm";
     address public owner;
-    DappToken public dappToken;
+    DAppToken public dappToken;
     LPToken public lpToken;
 
     uint256 public constant REWARD_PER_BLOCK = 1e18; // Recompensa por bloque (total para todos los usuarios)
@@ -24,11 +24,11 @@ contract TokenFarm {
     
     // Bonus 2: Struct
     struct structUser {
-        uint256 public stakingBalance;
-        uint256 public checkpoints;
-        uint256 public pendingRewards;
-        bool public hasStaked;
-        bool public isStaking;
+        uint256 stakingBalance;
+        uint256 checkpoints;
+        uint256 pendingRewards;
+        bool hasStaked;
+        bool isStaking;
     }
     mapping(address => structUser) public usersInfo;
     // mapping(address => uint256) public stakingBalance;
@@ -53,12 +53,12 @@ contract TokenFarm {
     }
 
     modifier OnlyStaker() {
-        require(usersInfo[msg.sender].isStaking && usersInfo[msg.sender].stakingBalance, "You are not staking");
+        require(usersInfo[msg.sender].isStaking && usersInfo[msg.sender].stakingBalance != 0, "You are not staking");
         _;
     }
 
     // Constructor
-    constructor(DappToken _dappToken, LPToken _lpToken) {
+    constructor(DAppToken _dappToken, LPToken _lpToken) {
         // Configurar las instancias de los contratos de DappToken y LPToken.
         dappToken = _dappToken;
         lpToken = _lpToken;
@@ -88,7 +88,7 @@ contract TokenFarm {
         // Actualizar isStaking del usuario a true.
         user.isStaking = true;
         // Si checkpoints del usuario está vacío, inicializarlo con el número de bloque actual.
-        if (user.user.checkpoints == 0) {
+        if (user.checkpoints == 0) {
             user.checkpoints = block.number;
         }
         // Llamar a distributeRewards para calcular y actualizar las recompensas pendientes.
@@ -153,11 +153,11 @@ contract TokenFarm {
             structUser storage user = usersInfo[beneficiary]; // variable de storage
             // Para cada usuario, si están haciendo staking (isStaking == true), llamar a distributeRewards.
             if(user.isStaking) {
-                distributeRewards(beneficiary);;
+                distributeRewards(beneficiary);
             }
 
             // Emitir un evento indicando que las recompensas han sido distribuidas.
-            event RewardsDistributed(beneficiary, pendingRewards[beneficiary]);
+            emit RewardsDistributed(beneficiary, user.pendingRewards);
         }
         
     }
