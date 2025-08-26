@@ -90,10 +90,11 @@ contract TokenFarm {
         // Si checkpoints del usuario está vacío, inicializarlo con el número de bloque actual.
         if (user.checkpoints == 0) {
             user.checkpoints = block.number;
+        } else {
+            // Llamar a distributeRewards para calcular y actualizar las recompensas pendientes.
+            distributeRewards(msg.sender);
+            // Emitir un evento de depósito.
         }
-        // Llamar a distributeRewards para calcular y actualizar las recompensas pendientes.
-        distributeRewards(msg.sender);
-        // Emitir un evento de depósito.
         emit SuccessDeposit(msg.sender, _amount);
     }
 
@@ -211,19 +212,27 @@ contract TokenFarm {
         require(block.number > checkpoint, "No blocks passed since last checkpoint");
         require(totalStakingBalance > 0, "No staking balance available");
         
-        // Calcular la cantidad de bloques transcurridos desde el último checkpoint.
-        uint256 blocksPassed = block.number - checkpoint;
+        if (user.isStaking && user.stakingBalance > 0) {
+            // Calcular la cantidad de bloques transcurridos desde el último checkpoint.
+            uint256 blocksPassed = block.number - checkpoint;
 
-        // Calcular la proporción del staking del usuario en relación al total staking (stakingBalance[beneficiary] / totalStakingBalance).
-        uint256 share = user.stakingBalance/ totalStakingBalance;
-        
-        // Calcular las recompensas del usuario multiplicando la proporción por REWARD_PER_BLOCK y los bloques transcurridos.
-        uint256 reward = REWARD_PER_BLOCK * blocksPassed * share;
-        
-        // Actualizar las recompensas pendientes del usuario en pendingRewards.
-        user.pendingRewards += reward;
+            if (blocksPassed > 0){
+                // Calcular la proporción del staking del usuario en relación al total staking (stakingBalance[beneficiary] / totalStakingBalance).
+                uint256 share = user.stakingBalance/ totalStakingBalance;
+                
+                // Calcular las recompensas del usuario multiplicando la proporción por REWARD_PER_BLOCK y los bloques transcurridos.
+                uint256 reward = REWARD_PER_BLOCK * blocksPassed * share;
+                
+                // Actualizar las recompensas pendientes del usuario en pendingRewards.
+                user.pendingRewards += reward;
 
-        // Actualizar el checkpoint del usuario al bloque actual.
-        user.checkpoints = block.number;
+                // Actualizar el checkpoint del usuario al bloque actual.
+                user.checkpoints = block.number;
+
+                emit RewardsDistributed(beneficiary, reward);
+            }
+            
+        }
     }
+
 }

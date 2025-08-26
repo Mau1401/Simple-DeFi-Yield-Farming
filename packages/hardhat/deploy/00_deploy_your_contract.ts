@@ -38,7 +38,7 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
     autoMine: true,
   });
 
-  await deploy("TokenFarm", {
+  const tokeFarmDeployment = await deploy("TokenFarm", {
     from: deployer,
     // Contract constructor arguments
     args: [dappTokenDeployment.address, lpTokenDeployment.address],
@@ -49,12 +49,15 @@ const deployYourContract: DeployFunction = async function (hre: HardhatRuntimeEn
   });
 
   // Get the deployed contract to interact with it after deploying.
-  const TokenFarm = await hre.ethers.getContract<Contract>("TokenFarm", deployer);
-  console.log("You have deployed the TokenFarm contract to:", TokenFarm.address);
-  const DAppToken = await hre.ethers.getContract<Contract>("DAppToken", deployer);
-  console.log("You have deployed the DAppToken contract to:", DAppToken.address);
-  const LPToken = await hre.ethers.getContract<Contract>("LPToken", deployer);
-  console.log("You have deployed the LPToken contract to:", LPToken.address);
+  // const TokenFarm =
+  await hre.ethers.getContract<Contract>("TokenFarm", deployer);
+  console.log("You have deployed the TokenFarm contract to:", tokeFarmDeployment.address);
+  // const DAppToken =
+  await hre.ethers.getContract<Contract>("DAppToken", deployer);
+  console.log("You have deployed the DAppToken contract to:", dappTokenDeployment.address);
+  // const LPToken =
+  await hre.ethers.getContract<Contract>("LPToken", deployer);
+  console.log("You have deployed the LPToken contract to:", lpTokenDeployment.address);
 };
 
 export default deployYourContract;
