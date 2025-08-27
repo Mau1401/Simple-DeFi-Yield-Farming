@@ -54,10 +54,15 @@ describe("Token Farm contract", function () {
     const { owner, user1, user2, lpToken, tokenFarm } = await loadFixture(deployAllFixture);
 
     const tokenFarmAddress = await tokenFarm.getAddress();
+    // const user1Info = await tokenFarm.usersInfo(user1.address);
+    // const user2Info = await tokenFarm.usersInfo(user2.address);
     await lpToken.connect(user1).approve(tokenFarmAddress, ethers.parseEther("100"));
     await tokenFarm.connect(user1).deposit(ethers.parseEther("100"));
     await lpToken.connect(user2).approve(tokenFarmAddress, ethers.parseEther("200"));
     await tokenFarm.connect(user2).deposit(ethers.parseEther("200"));
+
+    // console.log("user1Info.pendingRewards before", user1Info.pendingRewards);
+    // console.log("user2Info.pendingRewards before", user2Info.pendingRewards);
 
     // Avanzar 10 bloques
     for (let i = 0; i < 10; i++) {
@@ -67,14 +72,16 @@ describe("Token Farm contract", function () {
     // Distribuir recompensas
     await expect(tokenFarm.connect(owner).distributeRewardsAll()).to.emit(tokenFarm, "RewardsDistributed");
 
-    // Verificar recompensas
     const user1Info = await tokenFarm.usersInfo(user1.address);
     const user2Info = await tokenFarm.usersInfo(user2.address);
+
+    console.log("user1Info.pendingRewards after", user1Info.pendingRewards);
+    console.log("user2Info.pendingRewards after", user2Info.pendingRewards);
+
+    // Verificar recompensas
     console.log("user1Info.pendingRewards", user1Info.pendingRewards);
     console.log("user2Info.pendingRewards", user2Info.pendingRewards);
-    console.log("user1Info.stakingBalance", user1Info.stakingBalance);
-    console.log("user2Info.stakingBalance", user2Info.stakingBalance);
-    console.log("user1Info.checkpoints", user1Info);
+    console.log("user1Info.checkpoints", user1Info.checkpoints);
     expect(user2Info.pendingRewards).to.be.gt(user1Info.pendingRewards); // Use BigInt
     expect(user1Info.pendingRewards).to.be.gt(0n); // Use BigInt
     expect(user2Info.pendingRewards).to.be.gt(0n); // Use BigInt
@@ -92,7 +99,7 @@ describe("Token Farm contract", function () {
     const balanceBefore = await dappToken.balanceOf(user1.address);
 
     await expect(tokenFarm.connect(user1).claimRewards())
-      .to.emit(tokenFarm, "RewardsClaimed")
+      .to.emit(tokenFarm, "SuccessClaimRewards")
       .withArgs(user1.address, pendingRewards);
 
     const balanceAfter = await dappToken.balanceOf(user1.address);

@@ -72,11 +72,18 @@ contract TokenFarm {
      */
     function deposit(uint256 _amount) external {
         // Verificar que _amount sea mayor a 0.
-        require(_amount > 0, "Amount must be greater than 0");
-        // Transferir tokens LP del usuario a este contrato.
-        lpToken.transferFrom(msg.sender, address(this), _amount);
+        require(_amount > 0, "Amount must be greater than 0"); 
         // Actualizar el balance de staking del usuario en stakingBalance.
         structUser storage user = usersInfo[msg.sender]; // variable de storage
+
+        // Si el usuario ya está en staking, primero distribuye recompensas pendientes
+        if (user.isStaking && user.stakingBalance > 0) {
+            distributeRewards(msg.sender);
+        }
+        
+        // Transferir tokens LP del usuario a este contrato.
+        lpToken.transferFrom(msg.sender, address(this), _amount);
+        
         user.stakingBalance += _amount;
         // Incrementar totalStakingBalance con _amount.
         totalStakingBalance += _amount;
@@ -87,14 +94,10 @@ contract TokenFarm {
         }
         // Actualizar isStaking del usuario a true.
         user.isStaking = true;
-        // Si checkpoints del usuario está vacío, inicializarlo con el número de bloque actual.
-        if (user.checkpoints == 0) {
-            user.checkpoints = block.number;
-        } else {
-            // Llamar a distributeRewards para calcular y actualizar las recompensas pendientes.
-            distributeRewards(msg.sender);
-            // Emitir un evento de depósito.
-        }
+        user.checkpoints = block.number;
+        // Llamar a distributeRewards para calcular y actualizar las recompensas pendientes.
+        distributeRewards(msg.sender);
+        // Emitir un evento de depósito.
         emit SuccessDeposit(msg.sender, _amount);
     }
 
@@ -209,19 +212,20 @@ contract TokenFarm {
         uint256 checkpoint = user.checkpoints;
 
         // Verificar que el número de bloque actual sea mayor al checkpoint y que totalStakingBalance sea mayor a 0.
-        require(block.number > checkpoint, "No blocks passed since last checkpoint");
+        //require(block.number > checkpoint, "No blocks passed since last checkpoint");
         require(totalStakingBalance > 0, "No staking balance available");
         
-        if (user.isStaking && user.stakingBalance > 0) {
+        if (
+            user.isStaking &&
+             user.stakingBalance > 0 &&
+             block.number > checkpoint
+        ) {
             // Calcular la cantidad de bloques transcurridos desde el último checkpoint.
             uint256 blocksPassed = block.number - checkpoint;
 
             if (blocksPassed > 0){
-                // Calcular la proporción del staking del usuario en relación al total staking (stakingBalance[beneficiary] / totalStakingBalance).
-                uint256 share = user.stakingBalance/ totalStakingBalance;
-                
                 // Calcular las recompensas del usuario multiplicando la proporción por REWARD_PER_BLOCK y los bloques transcurridos.
-                uint256 reward = REWARD_PER_BLOCK * blocksPassed * share;
+                uint256 reward = REWARD_PER_BLOCK * blocksPassed * user.stakingBalance/ totalStakingBalance;
                 
                 // Actualizar las recompensas pendientes del usuario en pendingRewards.
                 user.pendingRewards += reward;
@@ -231,7 +235,6 @@ contract TokenFarm {
 
                 emit RewardsDistributed(beneficiary, reward);
             }
-            
         }
     }
 
